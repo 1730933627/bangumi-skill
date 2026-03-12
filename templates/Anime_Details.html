@@ -1,0 +1,180 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <style>
+        * {{ margin: 0; padding: 0; box-sizing: border-box; }}
+        body {{ font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif; line-height: 1.6; color: #1a1a1a; background: #f0f2f5; }}
+        .wrapper {{ width: 100%; background: #f0f2f5; padding: 24px 0; }}
+        .container {{ width: 90%; max-width: 1000px; margin: 0 auto; background: #fff; border-radius: 20px; overflow: hidden; box-shadow: 0 8px 40px rgba(0,0,0,0.1); border: 1px solid #e0e0e0; }}
+        .layout {{ display: flex; }}
+        .col {{ display: flex; flex-direction: column; }}
+        .col-left {{ width: 400px; background: linear-gradient(180deg, #f8f9fa 0%, #fff 100%); border-right: 1px solid #e0e0e0; }}
+        .col-right {{ flex: 1; background: #fff; }}
+        .hero-image img {{ width: 100%; height: auto; display: block; }}
+        .gradient-box {{ background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: #fff; text-align: center; }}
+        .gradient-box h1 {{ font-size: 28px; font-weight: 700; margin-bottom: 6px; }}
+        .gradient-box p {{ font-size: 13px; opacity: 0.95; }}
+        .card {{ background: #fff; border-radius: 14px; padding: 20px; margin-bottom: 18px; border: 1px solid #e0e0e0; }}
+        .card-title {{ font-size: 17px; font-weight: 600; margin-bottom: 14px; padding-bottom: 10px; border-bottom: 2px solid #667eea; }}
+        .info-item {{ margin-bottom: 16px; padding-bottom: 16px; border-bottom: 1px solid #eee; }}
+        .info-item:last-child {{ border-bottom: none; margin-bottom: 0; padding-bottom: 0; }}
+        .info-label {{ font-size: 12px; color: #888; text-transform: uppercase; letter-spacing: 0.5px; }}
+        .info-value {{ font-size: 16px; font-weight: 700; color: #1a1a1a; }}
+        .rating-score {{ font-size: 56px; font-weight: 800; line-height: 1; letter-spacing: -2px; }}
+        .rating-label {{ font-size: 13px; opacity: 0.95; margin-top: 10px; }}
+        .cast-item {{ padding: 10px 0; font-size: 13px; border-bottom: 1px solid #f0f0f0; }}
+        .cast-item:last-child {{ border-bottom: none; }}
+        .cast-role {{ font-weight: 600; }}
+        .cast-va {{ color: #667eea; font-weight: 500; }}
+        .tags {{ display: flex; flex-wrap: wrap; gap: 8px; padding: 16px; background: #fff; }}
+        .tag {{ padding: 4px 10px; border-radius: 14px; font-size: 11px; font-weight: 500; background: #fff; color: #1a1a1a; border: 1px solid #d0d0d0; }}
+        .stats-grid {{ display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; }}
+        .stat-card {{ background: #f8f9fa; padding: 16px 10px; border-radius: 12px; text-align: center; border: 1px solid #e0e0e0; }}
+        .stat-num {{ font-size: 19px; font-weight: 700; color: #667eea; }}
+        .stat-txt {{ font-size: 11px; color: #888; margin-top: 5px; }}
+        .synopsis {{ background: #f8f9fa; padding: 20px; border-radius: 12px; font-size: 14px; color: #444; line-height: 2; }}
+        .synopsis p {{ margin-bottom: 12px; }}
+        .synopsis p:last-child {{ margin-bottom: 0; }}
+        .quote-card {{ background: #f8f9fa; border-left: 4px solid #667eea; padding: 16px 18px; margin-bottom: 12px; border-radius: 0 12px 12px 0; }}
+        .quote-text {{ font-size: 14px; color: #444; font-style: italic; margin-bottom: 10px; line-height: 1.7; }}
+        .quote-author {{ font-size: 12px; color: #888; text-align: right; }}
+        .btn-container {{ text-align: center; margin-top: 28px; padding-top: 24px; border-top: 1px solid #e0e0e0; }}
+        .btn {{ display: inline-block; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: #fff !important; padding: 15px 44px; border-radius: 28px; text-decoration: none; font-weight: 600; font-size: 15px; box-shadow: 0 4px 16px rgba(102,126,234,0.3); }}
+        .footer {{ background: #f8f9fa; color: #888; padding: 26px 28px; text-align: center; font-size: 12px; border-top: 1px solid #e0e0e0; }}
+        .footer-heart {{ color: #667eea; }}
+        .mobile-stats {{ display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; margin-bottom: 18px; }}
+        .mobile-stat {{ text-align: center; padding: 14px; background: #fff; border-radius: 10px; border: 1px solid #e0e0e0; }}
+        .mobile-stat-label {{ font-size: 11px; color: #888; text-transform: uppercase; margin-bottom: 6px; }}
+        .mobile-stat-value {{ font-size: 18px; font-weight: 700; color: #667eea; }}
+        .mobile-stat-sub {{ font-size: 11px; color: #888; margin-top: 4px; }}
+        .desktop-only {{ display: flex; }}
+        .mobile-only {{ display: none; }}
+        @media screen and (max-width: 900px) {{
+            .wrapper {{ padding: 16px 0; }}
+            .container {{ width: 95%; border-radius: 0; }}
+            .layout {{ flex-direction: column; }}
+            .col {{ width: 100%; }}
+            .col-left {{ border-right: none; border-bottom: 1px solid #e0e0e0; }}
+            .desktop-only {{ display: none; }}
+            .mobile-only {{ display: block; }}
+        }}
+        @media screen and (max-width: 600px) {{
+            .wrapper {{ padding: 0; background: #e8eaed; }}
+            .container {{ width: 100%; margin: 0; border: none; border-left: 1px solid #e0e0e0; border-right: 1px solid #e0e0e0; }}
+            .card {{ padding: 16px; margin-bottom: 14px; border-radius: 12px; box-shadow: 0 2px 8px rgba(0,0,0,0.06); }}
+            .card-title {{ font-size: 16px; }}
+            .stats-grid {{ grid-template-columns: repeat(2, 1fr); }}
+            .stat-card {{ padding: 14px 10px; }}
+            .stat-num {{ font-size: 17px; }}
+            .synopsis {{ font-size: 13px; line-height: 1.9; }}
+            .tag {{ font-size: 11px; padding: 4px 10px; }}
+            .btn {{ padding: 13px 32px; font-size: 14px; width: 100%; max-width: 280px; }}
+            .footer {{ padding: 22px 16px; }}
+            .mobile-stats {{ gap: 8px; }}
+            .mobile-stat {{ padding: 12px; }}
+            .mobile-stat-value {{ font-size: 17px; }}
+        }}
+        @media screen and (max-width: 375px) {{
+            .rating-score {{ font-size: 48px; }}
+            .stat-num {{ font-size: 16px; }}
+            .mobile-stat-value {{ font-size: 16px; }}
+        }}
+    </style>
+</head>
+<body>
+    <div class="wrapper">
+        <div class="container">
+            <div class="layout desktop-only">
+                <div class="col col-left">
+                    <div class="hero-image"><img src="cid:cover_image" alt="{alt_text}"></div>
+                    <div class="gradient-box" style="padding:24px 20px;border-bottom:1px solid #e0e0e0;">
+                        <div class="rating-score">{rating_score}</div>
+                        <div class="rating-label">{rating_label}</div>
+                    </div>
+                    <div style="padding:20px;background:#fff;">
+                        <div class="info-item"><div class="info-label">作品排名</div><div class="info-value">{rank}</div></div>
+                        <div class="info-item"><div class="info-label">评价人数</div><div class="info-value">{votes}人</div></div>
+                        <div class="info-item"><div class="info-label">总收藏</div><div class="info-value">{favorites}人</div></div>
+                        <div class="info-item"><div class="info-label">好评率</div><div class="info-value">{positive_rate}%</div></div>
+                    </div>
+                    <div style="padding:20px;background:#fff;border-top:1px solid #e0e0e0;">
+                        <div class="card-title" style="margin-bottom:12px;">🎙️ 主要声优</div>
+                        <div class="cast-item"><span class="cast-role">{va1_role}</span> · <span class="cast-va">{va1_name}</span></div>
+                        <div class="cast-item"><span class="cast-role">{va2_role}</span> · <span class="cast-va">{va2_name}</span></div>
+                        <div class="cast-item"><span class="cast-role">{va3_role}</span> · <span class="cast-va">{va3_name}</span></div>
+                        <div class="cast-item"><span class="cast-role">{va4_role}</span> · <span class="cast-va">{va4_name}</span></div>
+                    </div>
+                    <div style="margin:18px 0 0;">
+                        <div class="card-title" style="padding:0 20px 10px;margin-bottom:12px;">🏷️ 热门标签</div>
+                        <div class="tags" style="padding:0 20px 20px;">
+                            {tags_html}
+                        </div>
+                    </div>
+                </div>
+                <div class="col col-right">
+                    <div class="gradient-box" style="padding:26px 28px;border-bottom:1px solid rgba(255,255,255,0.2);">
+                        <h1>{header_title}</h1>
+                        <p>{header_subtitle}</p>
+                    </div>
+                    <div style="padding:32px 28px;">
+                        <div class="card"><div class="card-title">📊 收藏统计</div><div class="stats-grid">
+                            <div class="stat-card"><div class="stat-num">{stat_wish_num}</div><div class="stat-txt">❤️ 想看</div></div>
+                            <div class="stat-card"><div class="stat-num">{stat_doing_num}</div><div class="stat-txt">📺 在看</div></div>
+                            <div class="stat-card"><div class="stat-num">{stat_done_num}</div><div class="stat-txt">✅ 看过</div></div>
+                            <div class="stat-card"><div class="stat-num">{stat_total}</div><div class="stat-txt">总收藏</div></div>
+                        </div></div>
+                        <div class="card"><div class="card-title">📖 剧情简介</div><div class="synopsis">
+                            {synopsis_html}
+                        </div></div>
+                        <div class="card"><div class="card-title">💬 用户评价</div>
+                            {quotes_html}
+                        </div>
+                        <div class="btn-container"><a href="{link_url}" class="btn">{link_text}</a></div>
+                    </div>
+                </div>
+            </div>
+            <div class="mobile-only">
+                <div class="hero-image"><img src="cid:cover_image" alt="{alt_text}"></div>
+                <div style="padding:20px 18px;">
+                    <h2 style="font-size:22px;font-weight:700;text-align:center;margin-bottom:4px;">{header_title}</h2>
+                    <p style="font-size:13px;color:#667eea;text-align:center;margin-bottom:20px;">{header_subtitle}</p>
+                    <div class="mobile-stats">
+                        <div class="mobile-stat"><div class="mobile-stat-label">作品排名</div><div class="mobile-stat-value">{rank}</div></div>
+                        <div class="mobile-stat"><div class="mobile-stat-label">评价人数</div><div class="mobile-stat-value">{votes}<span class="mobile-stat-sub">人</span></div></div>
+                        <div class="mobile-stat"><div class="mobile-stat-label">总收藏</div><div class="mobile-stat-value">{favorites}<span class="mobile-stat-sub">人</span></div></div>
+                        <div class="mobile-stat"><div class="mobile-stat-label">好评率</div><div class="mobile-stat-value">{positive_rate}<span class="mobile-stat-sub">%</span></div></div>
+                    </div>
+                    <div class="card"><div class="card-title">📊 收藏统计</div><div class="stats-grid">
+                        <div class="stat-card"><div class="stat-num">{stat_wish_num}</div><div class="stat-txt">❤️ 想看</div></div>
+                        <div class="stat-card"><div class="stat-num">{stat_doing_num}</div><div class="stat-txt">📺 在看</div></div>
+                        <div class="stat-card"><div class="stat-num">{stat_done_num}</div><div class="stat-txt">✅ 看过</div></div>
+                        <div class="stat-card"><div class="stat-num">{stat_total}</div><div class="stat-txt">总收藏</div></div>
+                    </div></div>
+                    <div class="card"><div class="card-title">📖 剧情简介</div><div class="synopsis">
+                        {synopsis_html}
+                    </div></div>
+                    <div class="card"><div class="card-title">🏷️ 热门标签</div><div class="tags" style="padding:0 16px 16px;">
+                        {tags_html}
+                    </div></div>
+                    <div class="card"><div class="card-title">🎙️ 主要声优</div>
+                        <div class="cast-item"><span class="cast-role">{va1_role}</span> · <span class="cast-va">{va1_name}</span></div>
+                        <div class="cast-item"><span class="cast-role">{va2_role}</span> · <span class="cast-va">{va2_name}</span></div>
+                        <div class="cast-item"><span class="cast-role">{va3_role}</span> · <span class="cast-va">{va3_name}</span></div>
+                        <div class="cast-item"><span class="cast-role">{va4_role}</span> · <span class="cast-va">{va4_name}</span></div>
+                    </div>
+                    <div class="card"><div class="card-title">💬 用户评价</div>
+                        {quotes_html}
+                    </div>
+                    <div class="btn-container"><a href="{link_url}" class="btn">{link_text}</a></div>
+                </div>
+            </div>
+            <div class="footer">
+                <div>此邮件由 {signature}</div>
+                <div style="margin-top:8px;opacity:0.7;">{date}</div>
+            </div>
+        </div>
+    </div>
+</body>
+</html>

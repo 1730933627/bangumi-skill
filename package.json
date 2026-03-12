@@ -1,0 +1,27 @@
+{
+  "name": "bangumi-skill",
+  "version": "1.0.0",
+  "description": "Bangumi 动画查询技能 - 查询动画、漫画、游戏信息",
+  "main": "scripts/bangumi.js",
+  "scripts": {
+    "search": "node scripts/bangumi.js search",
+    "subject": "node scripts/bangumi.js subject",
+    "calendar": "node scripts/bangumi.js calendar",
+    "image": "node scripts/bangumi.js image",
+    "episodes": "node scripts/bangumi.js episodes",
+    "rating": "node scripts/bangumi.js rating"
+  },
+  "keywords": [
+    "bangumi",
+    "动画",
+    "漫画",
+    "新番",
+    "openclaw-skill"
+  ],
+  "author": "OpenClaw",
+  "license": "MIT",
+  "dependencies": {},
+  "engines": {
+    "node": ">=14.0.0"
+  }
+}
