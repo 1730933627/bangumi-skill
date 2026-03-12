@@ -1,72 +1,3 @@
-// 角色搜索 - 根据角色名和作品名搜索角色（优化版）
-// 出演作品、声优、图片作为可选参数，默认不获取
-async function searchCharacter(keyword, subjectName = null, opts = {}) {
-  const { showSubjects = false, showPersons = false, imageType = null } = opts;
-  let characterId = null;
-  
-  if (keyword && /^\d+$/.test(keyword)) {
-    characterId = keyword;
-  } else {
-    if (!subjectName) {
-      log('[ERROR]', '错误：请提供作品名称');
-      log('[INFO]', '用法：bangumi char <角色名> <作品名>');
-      return null;
-    }
-    
-    log('[INFO]', `正在搜索"${keyword}" (${subjectName})...`);
-    const searchResult = await apiRequest(`/search/subject/${encodeURIComponent(subjectName)}?type=2`);
-    if (!searchResult.list || searchResult.list.length === 0) {
-      log('[ERROR]', `未找到作品：${subjectName}`);
-      return null;
-    }
-    
-    const subjectId = searchResult.list[0].id;
-    log('[INFO]', `作品 ID: ${subjectId}`);
-    
-    try {
-      const charPage = await fetchWebPage(`https://bangumi.tv/subject/${subjectId}/characters`);
-      const match = charPage.match(new RegExp(`href="/character/(\\d+)"[^>]*>${keyword.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}`, 'i'));
-      if (match) {
-        characterId = match[1];
-        log('[OK]', `角色 ID: ${characterId}`);
-      } else {
-        log('[ERROR]', `未找到角色：${keyword}`);
-        return null;
-      }
-    } catch (e) {
-      log('[ERROR]', `获取角色列表失败`);
-      return null;
-    }
-  }
-  
-  const character = await apiRequest(`/v0/characters/${characterId}`);
-  if (!character || !character.name) {
-    log('[ERROR]', `未找到角色 ID: ${characterId}`);
-    return null;
-  }
-  
-  log('[INFO]', `\n=== ${character.name_cn || character.name} ===`);
-  console.log(`\n角色 ID: ${characterId}\n日文名：${character.name}`);
-  if (character.summary) console.log(`\n简介：${character.summary.length > 300 ? character.summary.substring(0, 300) + '...' : character.summary}`);
-  if (character.infobox) character.infobox.forEach(item => console.log(`${item.key}: ${item.value}`));
-  
-  // 并行获取附加信息
-  const requests = [];
-  if (showSubjects) requests.push(apiRequest(`/v0/characters/${characterId}/subjects`).then(d => ({ t: 's', d })));
-  if (showPersons) requests.push(apiRequest(`/v0/characters/${characterId}/persons`).then(d => ({ t: 'p', d })));
-  if (imageType) requests.push(getCharacterImage(characterId, imageType).then(u => ({ t: 'i', u })).catch(() => ({ t: 'i', u: null })));
-  
-  if (requests.length) {
-    const results = await Promise.all(requests);
-    results.forEach(r => {
-      if (r.t === 's' && r.d?.length) { console.log('\n📺 出演作品:'); r.d.forEach(s => console.log(`  • ${s.name_cn || s.name} (${s.staff || '?'})`)); }
-      if (r.t === 'p' && r.d?.length) { console.log('\n🎙️ 配音演员:'); r.d.forEach(p => console.log(`  • ${p.name_cn || p.name || '?'}`)); }
-      if (r.t === 'i' && r.u) console.log(`\n🖼️ 图片 (${imageType}): ${r.u}`);
-    });
-  }
-  return character;
-}
-
 /**
  * Bangumi API 客户端
  * 查询动画、漫画、游戏信息
@@ -869,23 +800,6 @@ async function getMyTodayUpdates(limit = 20) {
   }
   
   return myUpdates;
-}
-
-// 获取封面图
-async function getImage(id, size = 'large') {
-  const subject = await apiRequest(`/v0/subjects/${id}`);
-  
-  if (!subject.images) {
-    log('[WARN]', '未找到图片');
-    return null;
-  }
-  
-  const imageUrl = subject.images[size] || subject.images.large;
-  
-  log('[INFO]', `\n封面图 (${size}):`);
-  console.log(imageUrl);
-  
-  return imageUrl;
 }
 
 // 获取剧集列表（带观看状态）（需要 Token，带缓存）
@@ -1708,7 +1622,6 @@ API 文档：https://bangumi.github.io/api/
   comments <ID> [-l 数量]  获取吐槽箱（用户评论）
   tags <ID> [--all]     获取作品标签列表（全部/热门）
   recommend <ID/名称>   推荐相似作品 [数量] [--sort hot|score|time|match]
-  char <角色名> <作品名> 搜索角色信息
   ts <标签 1> [标签 2]   标签搜索（多标签筛选）
 
 用户命令:
@@ -1903,62 +1816,7 @@ async function main() {
         await getTags(param, showAll);
         break;
         
-      case 'character':
-      case 'char':
-        // 解析角色名、作品名和选项
-        let keyword = null;
-        let subjectName = null;
-        const charOpts = {
-          showSubjects: false,
-          showPersons: false,
-          imageType: null,
-        };
-        const positionalArgs = [];
-        for (let i = 1; i < args.length; i++) {
-          const arg = args[i];
-          if (arg === '--subjects' || arg === '-s') {
-            charOpts.showSubjects = true;
-          } else if (arg === '--persons' || arg === '-p') {
-            charOpts.showPersons = true;
-          } else if (arg === '--image' || arg === '-i') {
-            charOpts.imageType = args[++i] || 'large';
-          } else if (!arg.startsWith('-')) {
-            positionalArgs.push(arg);
-          }
-        }
-        
-        if (positionalArgs.length === 0) {
-          log('[ERROR]', '错误：请提供角色名或角色 ID');
-          log('[INFO]', '用法：bangumi char <角色名> <作品名> [选项]');
-          log('[INFO]', '或：bangumi char <角色 ID> [选项]');
-          log('[INFO]', '选项：');
-          log('[INFO]', '  -s, --subjects     显示出演作品');
-          log('[INFO]', '  -p, --persons      显示配音演员');
-          log('[INFO]', '  -i, --image <类型> 获取图片 (small/grid/large/medium)');
-          log('[INFO]', '注意：出演作品、声优、图片默认不获取，需要时请使用选项指定');
-          log('[INFO]', '示例：bangumi char 洛琪希 无职转生');
-          log('[INFO]', '       bangumi char 46465 -s -p');
-          process.exit(1);
-        }
-        
-        keyword = positionalArgs[0];
-        
-        // 如果是数字 ID，直接查询
-        if (/^\d+$/.test(keyword)) {
-          await searchCharacter(keyword, null, charOpts);
-        } else {
-          // 需要作品名
-          if (positionalArgs.length < 2) {
-            log('[ERROR]', '错误：请提供作品名称');
-            log('[INFO]', '用法：bangumi char <角色名> <作品名> [选项]');
-            log('[INFO]', '示例：bangumi char 洛琪希 无职转生');
-            log('[INFO]', '或提供角色 ID: bangumi char 46465');
-            process.exit(1);
-          }
-          subjectName = positionalArgs[1];
-          await searchCharacter(keyword, subjectName, charOpts);
-        }
-        break;
+
         
       case 'tag-search':
       case 'ts':
@@ -2254,29 +2112,6 @@ async function fetchWebPage(url) {
         if (res.statusCode === 200 || res.statusCode === 302) resolve(data);
         else reject(new Error('HTTP ' + res.statusCode));
       });
-    });
-    req.on('error', reject);
-    req.end();
-  });
-}
-
-// 获取角色图片（处理 302 重定向）
-async function getCharacterImage(characterId, imageType = 'large') {
-  return new Promise((resolve, reject) => {
-    const options = {
-      hostname: 'api.bgm.tv',
-      path: `/v0/characters/${characterId}/image?type=${imageType}`,
-      method: 'GET',
-      headers: { 'User-Agent': 'OpenClaw-Bangumi-Skill/1.0' },
-    };
-    const req = https.request(options, (res) => {
-      if (res.statusCode === 302 && res.headers.location) {
-        resolve(res.headers.location);
-      } else if (res.statusCode === 200) {
-        resolve('图片获取成功');
-      } else {
-        reject(new Error('HTTP ' + res.statusCode));
-      }
     });
     req.on('error', reject);
     req.end();
