@@ -18,7 +18,6 @@ metadata: {"openclaw":{"emoji":"📺"}}
 - 查询动画/漫画/游戏信息（如"查一下《XXX》"）
 - 查看新番放送表（如"这季度有什么新番"）
 - 查看作品评分（如"XXX 评分怎么样"）
-- 获取封面图片（如"给我 XXX 的封面图"）
 - 查看剧集信息（如"XXX 有多少集"）
 - 推荐相似作品（如"推荐类似 XXX 的番剧"）
 - 查看角色/声优信息
@@ -42,7 +41,6 @@ metadata: {"openclaw":{"emoji":"📺"}}
 | `calendar` | 查看新番放送表 | - |
 | `today [数量]` | 查看今日更新的番剧 | 显示数量（默认 20） |
 | `seasonal [数量] [--min 评分]` | 查看本季热门番剧 | 数量、最低评分（默认 7.0） |
-| `image <ID> [尺寸]` | 获取封面图 | 条目 ID、尺寸（large/medium/small） |
 | `episodes <ID> [--status]` | 获取剧集列表（可显示观看状态） | 条目 ID |
 | `rating <ID>` | 获取评分详情 | 条目 ID |
 | `comments <ID> [-l 数量]` | 获取吐槽箱（用户评论） | 条目 ID、数量（默认 10） |
@@ -105,7 +103,6 @@ metadata: {"openclaw":{"emoji":"📺"}}
 | `--persons` | `-p` | 查询声优/制作人员 | `/v0/subjects/{id}/persons` |
 | `--characters` | `-c` | 查询角色列表 | `/v0/subjects/{id}/characters` |
 | `--subjects` | `-s` | 查询关联作品 | `/v0/subjects/{id}/subjects` |
-| `--image` | `-i` | 获取高清原图 | `/v0/subjects/{id}/image` |
 | `--collections` | | 查询收藏统计 | （从详情直接获取） |
 | `--comments` | | 查询吐槽箱（用户评论，显示 5 条） | （网页抓取） |
 
@@ -142,7 +139,6 @@ metadata: {"openclaw":{"emoji":"📺"}}
 |------|------|------|
 | `--subjects` | `-s` | 显示出演作品 |
 | `--persons` | `-p` | 显示配音演员 |
-| `--image` | `-i` | 获取高清原图（small/grid/large/medium，默认 large） |
 
 ### 角色 API 搜索选项（char-search / csearch）
 
@@ -243,9 +239,6 @@ bangumi today 15
 bangumi seasonal 20 --min 7.5
 bangumi hot 10 --min 7.5
 
-# 获取封面图
-bangumi image 400602 large
-
 # 查看剧集列表
 bangumi episodes 548818
 bangumi episodes 548818 --status  # 显示观看状态
@@ -332,11 +325,6 @@ bangumi char 189814                     # 查询酒寄彩葉
 bangumi char 189814 -s                  # 显示出演作品
 bangumi char 189814 -p                  # 显示配音演员
 bangumi char 189814 -s -p               # 显示作品和声优
-bangumi char 189814 -i                  # 获取高清原图（默认 large）
-bangumi char 189814 -i large            # 获取大图
-bangumi char 189814 -i medium           # 获取中图
-bangumi char 189814 -i small            # 获取小图
-bangumi char 189814 -i grid             # 获取网格图
 
 # API 搜索角色（POST /v0/search/characters）
 bangumi char-search 酒寄彩葉            # 搜索角色

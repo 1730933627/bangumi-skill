@@ -1702,7 +1702,6 @@ async function main() {
             subjectOpts.persons = true;
             subjectOpts.characters = true;
             subjectOpts.subjects = true;
-            subjectOpts.image = true;
             subjectOpts.collections = true;
             subjectOpts.comments = true;
           } else if (arg === '--persons' || arg === '-p') {
@@ -1711,8 +1710,6 @@ async function main() {
             subjectOpts.characters = true;
           } else if (arg === '--subjects' || arg === '-s') {
             subjectOpts.subjects = true;
-          } else if (arg === '--image' || arg === '-i') {
-            subjectOpts.image = true;
           } else if (arg === '--collections' || arg === '--stats') {
             subjectOpts.collections = true;
           } else if (arg === '--comments' || arg === '--comment') {
@@ -1750,14 +1747,6 @@ async function main() {
           }
         }
         await getSeasonalHot(hotLimit, minScore);
-        break;
-        
-      case 'image':
-        if (!param) {
-          log('[ERROR]', '错误：请提供条目 ID');
-          process.exit(1);
-        }
-        await getImage(param, param2 || 'large');
         break;
         
       case 'episodes':
@@ -2075,14 +2064,13 @@ async function main() {
         // 获取角色详情（通过角色 ID）
         if (!param) {
           log('[ERROR]', '错误：请提供角色 ID');
-          log('[INFO]', '用法：bangumi char <角色 ID> [--subjects/-s] [--persons/-p] [--image/-i <尺寸>]');
+          log('[INFO]', '用法：bangumi char <角色 ID> [--subjects/-s] [--persons/-p]');
           process.exit(1);
         }
         // 解析选项
         const charOpts = {
           subjects: false,
           persons: false,
-          image: false,
         };
         for (let i = 1; i < args.length; i++) {
           const arg = args[i];
@@ -2090,14 +2078,6 @@ async function main() {
             charOpts.subjects = true;
           } else if (arg === '--persons' || arg === '-p') {
             charOpts.persons = true;
-          } else if (arg === '--image' || arg === '-i') {
-            const nextArg = args[++i];
-            if (nextArg && ['small', 'grid', 'large', 'medium'].includes(nextArg)) {
-              charOpts.image = nextArg;
-            } else {
-              charOpts.image = 'large';  // 默认大图
-              i--;  // 回退，让下一次循环处理
-            }
           }
         }
         await getCharacter(param, charOpts);
@@ -2240,44 +2220,6 @@ function characterSearchRequest(apiPath, options = {}) {
   });
 }
 
-// 获取角色图片（从角色详情获取指定尺寸的图片链接）
-async function getCharacterImage(characterId, imageType = 'large') {
-  const validTypes = ['small', 'grid', 'large', 'medium'];
-  if (!validTypes.includes(imageType)) {
-    log('[ERROR]', `错误：无效的图片类型 '${imageType}'`);
-    log('[INFO]', `可用类型：${validTypes.join(', ')}`);
-    return null;
-  }
-  
-  // 获取角色详情以获取图片链接
-  const character = await apiRequest(`/v0/characters/${characterId}`);
-  
-  if (!character || !character.images) {
-    log('[WARN]', '未找到图片');
-    return null;
-  }
-  
-  const imageUrl = character.images[imageType];
-  if (!imageUrl) {
-    log('[WARN]', `未找到 ${imageType} 尺寸的图片`);
-    return null;
-  }
-  
-  log('[OK]', `角色图片 (${imageType}):`);
-  console.log(`   ${imageUrl}`);
-  console.log('');
-  
-  // 同时显示其他尺寸
-  console.log('其他尺寸:');
-  validTypes.forEach(type => {
-    if (type !== imageType && character.images[type]) {
-      console.log(`   ${type}: ${character.images[type]}`);
-    }
-  });
-  
-  return character.images;
-}
-
 async function searchCharacters(keyword, opts = {}) {
   return new Promise((resolve, reject) => {
     let url = `${BASE_URL}${apiPath}`;
@@ -2401,13 +2343,12 @@ async function searchCharacters(keyword, opts = {}) {
 
 // ============================================================================
 // 获取角色详情（通过角色 ID）
-// 支持查询出演作品、配音演员和图片
+// 支持查询出演作品和配音演员
 // ============================================================================
 async function getCharacter(id, opts = {}) {
   const {
     subjects = false,  // 显示出演作品
     persons = false,   // 显示配音演员（声优）
-    image = false,     // 获取图片 (small/grid/large/medium)
   } = opts;
   
   // 获取角色详情
@@ -2433,25 +2374,6 @@ async function getCharacter(id, opts = {}) {
   console.log(`📝 简介:`);
   console.log(`   ${summary.replace(/\r\n/g, '\n   ').replace(/\r/g, '\n   ').replace(/\n/g, '\n   ')}`);
   console.log('');
-  
-  // 图片（基本信息中的图片）
-  if (character.images) {
-    console.log(`🖼️ 基础图片:`);
-    console.log(`   大图：${character.images.large}`);
-    console.log(`   中图：${character.images.medium}`);
-    console.log(`   小图：${character.images.small}`);
-    console.log(`   网格：${character.images.grid}`);
-    console.log('');
-  }
-  
-  // 获取高清原图（使用 -i 选项）
-  if (image) {
-    try {
-      await getCharacterImage(id, image);
-    } catch (e) {
-      log('[WARN]', `获取图片失败：${e.message}`);
-    }
-  }
   
   // 别名
   if (character.infobox && character.infobox.length > 0) {
