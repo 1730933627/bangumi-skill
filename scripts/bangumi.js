@@ -2070,6 +2070,60 @@ async function main() {
         await getRanking(rankOpts);
         break;
       
+      case 'char':
+      case 'character':
+        // 获取角色详情（通过角色 ID）
+        if (!param) {
+          log('[ERROR]', '错误：请提供角色 ID');
+          log('[INFO]', '用法：bangumi char <角色 ID> [--subjects/-s] [--persons/-p] [--image/-i <尺寸>]');
+          process.exit(1);
+        }
+        // 解析选项
+        const charOpts = {
+          subjects: false,
+          persons: false,
+          image: false,
+        };
+        for (let i = 1; i < args.length; i++) {
+          const arg = args[i];
+          if (arg === '--subjects' || arg === '-s') {
+            charOpts.subjects = true;
+          } else if (arg === '--persons' || arg === '-p') {
+            charOpts.persons = true;
+          } else if (arg === '--image' || arg === '-i') {
+            const nextArg = args[++i];
+            if (nextArg && ['small', 'grid', 'large', 'medium'].includes(nextArg)) {
+              charOpts.image = nextArg;
+            } else {
+              charOpts.image = 'large';  // 默认大图
+              i--;  // 回退，让下一次循环处理
+            }
+          }
+        }
+        await getCharacter(param, charOpts);
+        break;
+        
+      case 'char-search':
+      case 'csearch':
+        // 使用 POST /v0/search/characters 搜索角色
+        if (!param) {
+          log('[ERROR]', '错误：请提供角色名关键词');
+          log('[INFO]', '用法：bangumi char-search <角色名> [--nsfw true|false]');
+          process.exit(1);
+        }
+        // 解析参数
+        let searchKeyword = param;
+        let searchNsfw = true;
+        for (let i = 1; i < args.length; i++) {
+          const arg = args[i];
+          if (arg === '--nsfw') {
+            const nsfwVal = args[++i];
+            searchNsfw = nsfwVal === 'true' || nsfwVal === '1' || nsfwVal === 'yes';
+          }
+        }
+        await searchCharacters(searchKeyword, { nsfw: searchNsfw });
+        break;
+        
       case 'info':
         // 导出番剧信息（JSON 格式，用于邮件发送）
         if (!param || !/^\d+$/.test(param)) {
@@ -2116,6 +2170,347 @@ async function fetchWebPage(url) {
     req.on('error', reject);
     req.end();
   });
+}
+
+// ============================================================================
+// 角色搜索 - 使用 POST /v0/search/characters
+// 支持关键词搜索和条件筛选（nsfw 等）
+// ============================================================================
+
+// 角色搜索专用 API 请求（不使用连接池，不使用 Token，避免 POST 请求问题）
+function characterSearchRequest(apiPath, options = {}) {
+  return new Promise((resolve, reject) => {
+    let url = `${BASE_URL}${apiPath}`;
+    
+    // 角色搜索 API 不使用 Token（使用 Token 会导致返回空结果）
+    const headers = {
+      'User-Agent': 'OpenClaw-Bangumi-Skill/1.0',
+      ...options.headers,
+    };
+    
+    const reqOptions = {
+      method: options.method || 'GET',
+      headers,
+      timeout: 10000,
+    };
+    
+    const req = https.request(url, reqOptions, (res) => {
+      let data = '';
+      
+      res.on('data', (chunk) => {
+        data += chunk;
+      });
+      
+      res.on('end', () => {
+        if (res.statusCode === 204) {
+          resolve({});
+          return;
+        }
+        
+        try {
+          if (res.statusCode >= 400) {
+            reject(new Error(`API 错误 (${res.statusCode}): ${data}`));
+          } else {
+            resolve(data ? JSON.parse(data) : {});
+          }
+        } catch (e) {
+          reject(new Error(`JSON 解析失败：${e.message}`));
+        }
+      });
+    });
+    
+    req.on('error', (e) => {
+      reject(new Error(`API 请求失败：${e.message}`));
+    });
+    
+    req.on('timeout', () => {
+      req.destroy();
+      reject(new Error('API 请求超时 (10 秒)'));
+    });
+    
+    if (options.body) {
+      const bodyData = JSON.stringify(options.body);
+      if (!headers['Content-Type']) {
+        headers['Content-Type'] = 'application/json';
+      }
+      req.write(bodyData);
+    }
+    
+    req.end();
+  });
+}
+
+// 获取角色图片（从角色详情获取指定尺寸的图片链接）
+async function getCharacterImage(characterId, imageType = 'large') {
+  const validTypes = ['small', 'grid', 'large', 'medium'];
+  if (!validTypes.includes(imageType)) {
+    log('[ERROR]', `错误：无效的图片类型 '${imageType}'`);
+    log('[INFO]', `可用类型：${validTypes.join(', ')}`);
+    return null;
+  }
+  
+  // 获取角色详情以获取图片链接
+  const character = await apiRequest(`/v0/characters/${characterId}`);
+  
+  if (!character || !character.images) {
+    log('[WARN]', '未找到图片');
+    return null;
+  }
+  
+  const imageUrl = character.images[imageType];
+  if (!imageUrl) {
+    log('[WARN]', `未找到 ${imageType} 尺寸的图片`);
+    return null;
+  }
+  
+  log('[OK]', `角色图片 (${imageType}):`);
+  console.log(`   ${imageUrl}`);
+  console.log('');
+  
+  // 同时显示其他尺寸
+  console.log('其他尺寸:');
+  validTypes.forEach(type => {
+    if (type !== imageType && character.images[type]) {
+      console.log(`   ${type}: ${character.images[type]}`);
+    }
+  });
+  
+  return character.images;
+}
+
+async function searchCharacters(keyword, opts = {}) {
+  return new Promise((resolve, reject) => {
+    let url = `${BASE_URL}${apiPath}`;
+    
+    // 角色搜索 API 不使用 Token（使用 Token 会导致返回空结果）
+    const headers = {
+      'User-Agent': 'OpenClaw-Bangumi-Skill/1.0',
+      ...options.headers,
+    };
+    
+    const reqOptions = {
+      method: options.method || 'GET',
+      headers,
+      timeout: 10000,
+    };
+    
+    const req = https.request(url, reqOptions, (res) => {
+      let data = '';
+      
+      res.on('data', (chunk) => {
+        data += chunk;
+      });
+      
+      res.on('end', () => {
+        if (res.statusCode === 204) {
+          resolve({});
+          return;
+        }
+        
+        try {
+          if (res.statusCode >= 400) {
+            reject(new Error(`API 错误 (${res.statusCode}): ${data}`));
+          } else {
+            resolve(data ? JSON.parse(data) : {});
+          }
+        } catch (e) {
+          reject(new Error(`JSON 解析失败：${e.message}`));
+        }
+      });
+    });
+    
+    req.on('error', (e) => {
+      reject(new Error(`API 请求失败：${e.message}`));
+    });
+    
+    req.on('timeout', () => {
+      req.destroy();
+      reject(new Error('API 请求超时 (10 秒)'));
+    });
+    
+    if (options.body) {
+      const bodyData = JSON.stringify(options.body);
+      if (!headers['Content-Type']) {
+        headers['Content-Type'] = 'application/json';
+      }
+      req.write(bodyData);
+    }
+    
+    req.end();
+  });
+}
+
+async function searchCharacters(keyword, opts = {}) {
+  const {
+    nsfw = true,  // 是否包含 R18 角色
+  } = opts;
+  
+  if (!keyword) {
+    log('[ERROR]', '错误：请提供角色名关键词');
+    return null;
+  }
+  
+  log('[INFO]', `正在搜索角色：${keyword} ...`);
+  
+  // 构建 POST 请求体
+  const requestBody = {
+    keyword: keyword,
+    filter: {
+      description: '不同条件之间是 且 的关系',
+      nsfw: nsfw,
+    },
+  };
+  
+  // 使用 POST 请求（不使用连接池）
+  const result = await characterSearchRequest('/v0/search/characters', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: requestBody,
+  });
+  
+  if (!result.data || result.data.length === 0) {
+    log('[WARN]', '未找到相关角色');
+    return null;
+  }
+  
+  const total = result.total || result.data.length;
+  
+  log('[INFO]', `\n=== 角色搜索：${keyword}（共${total}条，显示前${result.data.length}条）===`);
+  console.log('');
+  
+  result.data.forEach((item, index) => {
+    const name = item.name_cn || item.name;
+    const gender = item.gender === 'female' ? '女' : item.gender === 'male' ? '男' : '未知';
+    const summary = item.summary ? (item.summary.length > 100 ? item.summary.substring(0, 100) + '...' : item.summary) : '无简介';
+    const collects = item.stat?.collects || 0;
+    const comments = item.stat?.comments || 0;
+    
+    console.log(`${index + 1}. ${name}`);
+    console.log(`   性别：${gender} | ID: ${item.id}`);
+    console.log(`   收藏：${collects}人 | 评论：${comments}条`);
+    console.log(`   简介：${summary.replace(/\r\n/g, ' ').replace(/\r/g, ' ').replace(/\n/g, ' ')}`);
+    console.log('');
+  });
+  
+  if (result.data.length < total) {
+    log('[INFO]', `\n💡 提示：共${total}条结果，当前显示${result.data.length}条`);
+  }
+  
+  return { list: result.data, total };
+}
+
+// ============================================================================
+// 获取角色详情（通过角色 ID）
+// 支持查询出演作品、配音演员和图片
+// ============================================================================
+async function getCharacter(id, opts = {}) {
+  const {
+    subjects = false,  // 显示出演作品
+    persons = false,   // 显示配音演员（声优）
+    image = false,     // 获取图片 (small/grid/large/medium)
+  } = opts;
+  
+  // 获取角色详情
+  const character = await apiRequest(`/v0/characters/${id}`);
+  
+  if (!character || !character.id) {
+    log('[WARN]', '未找到该角色');
+    return null;
+  }
+  
+  const name = character.name_cn || character.name;
+  const gender = character.gender === 'female' ? '女' : character.gender === 'male' ? '男' : '未知';
+  const summary = character.summary || '无简介';
+  
+  log('[INFO]', `\n=== ${name} ===`);
+  console.log('');
+  console.log(`🆔 ID: ${character.id}`);
+  console.log(`♀️ 性别：${gender}`);
+  console.log(`📊 收藏：${character.stat?.collects || 0}人 | 评论：${character.stat?.comments || 0}条`);
+  console.log('');
+  
+  // 简介
+  console.log(`📝 简介:`);
+  console.log(`   ${summary.replace(/\r\n/g, '\n   ').replace(/\r/g, '\n   ').replace(/\n/g, '\n   ')}`);
+  console.log('');
+  
+  // 图片（基本信息中的图片）
+  if (character.images) {
+    console.log(`🖼️ 基础图片:`);
+    console.log(`   大图：${character.images.large}`);
+    console.log(`   中图：${character.images.medium}`);
+    console.log(`   小图：${character.images.small}`);
+    console.log(`   网格：${character.images.grid}`);
+    console.log('');
+  }
+  
+  // 获取高清原图（使用 -i 选项）
+  if (image) {
+    try {
+      await getCharacterImage(id, image);
+    } catch (e) {
+      log('[WARN]', `获取图片失败：${e.message}`);
+    }
+  }
+  
+  // 别名
+  if (character.infobox && character.infobox.length > 0) {
+    const alias = character.infobox.find(i => i.key === '别名');
+    if (alias && alias.value) {
+      console.log(`🏷️ 别名:`);
+      if (Array.isArray(alias.value)) {
+        alias.value.forEach(a => {
+          console.log(`   ${a.k}: ${a.v}`);
+        });
+      } else {
+        console.log(`   ${alias.value}`);
+      }
+      console.log('');
+    }
+  }
+  
+  // 出演作品
+  if (subjects) {
+    try {
+      const subjectsData = await apiRequest(`/v0/characters/${id}/subjects`);
+      if (subjectsData && subjectsData.length > 0) {
+        console.log(`🎬 出演作品 (${subjectsData.length}部):`);
+        subjectsData.slice(0, 20).forEach(s => {
+          const subjName = s.name_cn || s.name || '未知';
+          const relation = s.staff || '未知';
+          const type = s.type === 2 ? '动画' : s.type === 1 ? '书籍' : s.type === 3 ? '音乐' : s.type === 4 ? '游戏' : '未知';
+          console.log(`   • ${subjName} - ${relation} (${type})`);
+        });
+        if (subjectsData.length > 20) {
+          console.log(`   ... 还有 ${subjectsData.length - 20} 部`);
+        }
+        console.log('');
+      }
+    } catch (e) {
+      // 忽略错误
+    }
+  }
+  
+  // 配音演员
+  if (persons) {
+    try {
+      const personsData = await apiRequest(`/v0/characters/${id}/persons`);
+      if (personsData && personsData.length > 0) {
+        console.log(`🎙️ 配音演员 (${personsData.length}人):`);
+        personsData.forEach(p => {
+          const personName = p.name || '未知';
+          const relation = p.staff || '未知';
+          const subjName = p.subject_name_cn || p.subject_name || '';
+          console.log(`   • ${personName} - ${relation}（${subjName}）`);
+        });
+        console.log('');
+      }
+    } catch (e) {
+      // 忽略错误
+    }
+  }
+  
+  return character;
 }
 
 // ============================================================================

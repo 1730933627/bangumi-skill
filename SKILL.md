@@ -50,7 +50,9 @@ metadata: {"openclaw":{"emoji":"📺"}}
 | `recommend <ID/名称> [数量] [--sort]` | 推荐相似作品 | ID 或名称、数量、排序方式 |
 | `cat [选项]` | 分类查询/排行榜 | 见下方分类查询选项 |
 | `ts <标签 1> [标签 2] [...] [选项]` | 标签搜索（多标签且关系） | 标签、见下方标签搜索选项 |
-| `char <角色名> <作品名> [选项]` | 搜索角色信息 | 角色名、作品名、见下方角色搜索选项 |
+| `char <角色 ID> [选项]` | 查询角色详情（通过角色 ID） | 角色 ID、见下方角色搜索选项 |
+| `char-search <角色名> [选项]` | 使用 API 搜索角色（POST /v0/search/characters） | 角色名、见下方角色搜索选项 |
+| `csearch <角色名> [选项]` | char-search 的简写 | 角色名、见下方角色搜索选项 |
 
 ### 用户相关（无需认证）
 
@@ -140,7 +142,19 @@ metadata: {"openclaw":{"emoji":"📺"}}
 |------|------|------|
 | `--subjects` | `-s` | 显示出演作品 |
 | `--persons` | `-p` | 显示配音演员 |
-| `--image` | `-i` | 获取图片（small/grid/large/medium） |
+| `--image` | `-i` | 获取高清原图（small/grid/large/medium，默认 large） |
+
+### 角色 API 搜索选项（char-search / csearch）
+
+| 选项 | 简写 | 说明 | 默认值 |
+|------|------|------|--------|
+| `--nsfw` | | 是否包含 R18 角色 | true |
+
+### 角色 API 搜索选项（char-search / csearch）
+
+| 选项 | 简写 | 说明 | 默认值 |
+|------|------|------|--------|
+| `--nsfw` | | 是否包含 R18 角色 | true |
 
 ### 我的收藏选项（mycollections）
 
@@ -310,18 +324,24 @@ bangumi ts 机战 -t 2 -p 2 -l 20           # 机战类动画，第 2 页
 ### 角色搜索
 
 ```bash
-# 智能搜索（推荐）
-bangumi char 洛琪希 无职转生            # 从作品中查找角色
-bangumi char 酒寄彩葉 超时空辉夜姬      # 查找角色
-bangumi char 鲁迪乌斯 无职转生 -s       # 显示出演作品
+# 通过作品查找角色（从作品详情获取角色列表）
+bangumi subject 604826 --characters     # 查看《超时空辉夜姬！》角色列表
 
-# 使用角色 ID
-bangumi char 46465                      # 查询洛琪希
-bangumi char 46465 -s                   # 显示出演作品
-bangumi char 46465 -p                   # 显示配音演员
-bangumi char 46465 -s -p                # 显示作品和声优
-bangumi char 46465 -i large             # 获取大图片
-bangumi char 46465 -s -p -i medium      # 显示全部信息
+# 通过角色 ID 查询详情
+bangumi char 189814                     # 查询酒寄彩葉
+bangumi char 189814 -s                  # 显示出演作品
+bangumi char 189814 -p                  # 显示配音演员
+bangumi char 189814 -s -p               # 显示作品和声优
+bangumi char 189814 -i                  # 获取高清原图（默认 large）
+bangumi char 189814 -i large            # 获取大图
+bangumi char 189814 -i medium           # 获取中图
+bangumi char 189814 -i small            # 获取小图
+bangumi char 189814 -i grid             # 获取网格图
+
+# API 搜索角色（POST /v0/search/characters）
+bangumi char-search 酒寄彩葉            # 搜索角色
+bangumi char-search 洛琪希 --nsfw false  # 不包含 R18 内容
+bangumi csearch 初音未来                # 简写
 ```
 
 ### 用户相关
