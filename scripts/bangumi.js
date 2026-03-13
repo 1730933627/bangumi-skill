@@ -2128,10 +2128,10 @@ async function main() {
           process.exit(1);
         }
         const subjectId = parseInt(param);
-        const outputFile = param2 || `bangumi_${subjectId}.pdf`;
+        const outputFile = param2 || `bangumi_${subjectId}.txt`;
         
         log('[INFO]', `正在获取条目 ${subjectId} 的数据...`);
-        const pdfData = await exportToPDF(subjectId);
+        const pdfData = await exportToPDF(subjectId, true);  // quiet mode
         
         if (pdfData) {
           log('[INFO]', `正在生成 PDF 文件...`);
@@ -2140,24 +2140,23 @@ async function main() {
           
           const python = spawn('python3', [generateScript, String(subjectId), outputFile]);
           
-          let stdout = '';
-          let stderr = '';
+          // 通过 stdin 传递 JSON 数据
+          python.stdin.write(JSON.stringify(pdfData));
+          python.stdin.end();
           
           python.stdout.on('data', (data) => {
-            stdout += data.toString();
             process.stdout.write(data);
           });
           
           python.stderr.on('data', (data) => {
-            stderr += data.toString();
             process.stderr.write(data);
           });
           
           python.on('close', (code) => {
             if (code === 0) {
-              log('[OK]', `PDF 生成完成：${outputFile}`);
+              log('[OK]', `文件生成完成：${outputFile}`);
             } else {
-              log('[ERROR]', `PDF 生成失败，退出码：${code}`);
+              log('[ERROR]', `文件生成失败，退出码：${code}`);
             }
             process.exit(code);
           });
@@ -2488,10 +2487,10 @@ async function getCharacter(id, opts = {}) {
 // ============================================================================
 // 番剧信息导出 - 生成 PDF 文件
 // ============================================================================
-async function exportToPDF(subjectId) {
+async function exportToPDF(subjectId, quiet = false) {
   const subject = await apiRequest(`/v0/subjects/${subjectId}`);
   if (!subject || !subject.id) {
-    log('[ERROR]', `未找到条目 ${subjectId}`);
+    if (!quiet) log('[ERROR]', `未找到条目 ${subjectId}`);
     process.exit(1);
   }
   
@@ -2541,7 +2540,7 @@ async function exportToPDF(subjectId) {
   };
   
   // 输出 JSON 数据（可被其他脚本用于生成 PDF）
-  console.log(JSON.stringify(data, null, 2));
+  if (!quiet) console.log(JSON.stringify(data, null, 2));
   
   return data;
 }
