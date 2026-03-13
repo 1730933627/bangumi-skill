@@ -100,7 +100,7 @@ metadata: {"openclaw":{"emoji":"📺"}}
 |------|------|------|
 | `pdf <ID>` | 导出番剧信息为 PDF 数据格式 | 条目 ID |
 
-> 💡 输出 JSON 格式数据，包含封面图、评分、声优信息、剧情简介、标签、收藏统计等，可用于生成 PDF 或邮件发送。
+> 💡 输出 JSON 格式数据，包含封面图、评分、声优信息、剧情简介、标签、收藏统计等。
 
 ---
 
@@ -215,15 +215,7 @@ bangumi pdf 400602
 - 🖼️ 封面图 URL
 - 🔗 Bangumi 条目链接
 
-### 与邮件技能配合使用
-导出的 JSON 数据可以传递给 email 技能发送邮件：
-```bash
-# 1. 导出番剧数据
-bangumi pdf 400602 > data.json
 
-# 2. 使用 email 技能发送（需要自行处理 JSON 生成 HTML）
-email send-html "番剧推荐" "content.html"
-```
 
 ---
 
@@ -435,42 +427,6 @@ bangumi token clear
 ```
 
 ### 邮件发送
-
-```bash
-# 发送番剧详情邮件（使用默认主题）
-bangumi mail 400602
-
-# 自定义邮件主题
-bangumi mail 400602 "葬送的芙莉莲 - 强烈推荐！"
-
-# 使用别名
-bangumi email 548818 "本季最佳：芙莉莲"
-
-# 发送本季热门番剧邮件
-bangumi seasonal 1 --min 8.0  # 获取评分≥8.0 的 TOP1
-bangumi mail <ID>             # 用获取到的 ID 发送邮件
-```
-
-### 自然语言请求处理
-
-当用户发送以下类型的自然语言请求时，AI 应识别并调用邮件功能：
-
-| 用户说法 | AI 处理流程 |
-|---------|------------|
-| "把 XXX 发我邮箱" | 1. 搜索作品获取 ID → 2. 调用 `mail <ID>` |
-| "把今年最热门的番发我邮箱" | 1. 获取本季热门 TOP1 → 2. 调用 `mail <ID>` |
-| "推荐一部好番到我的邮箱" | 1. 获取高评分作品 → 2. 调用 `mail <ID>` |
-| "发我邮箱"（上下文中已有作品） | 直接使用上下文中的作品 ID 调用 `mail <ID>` |
-
-**配置检查流程：**
-1. 检查 `~/.openclaw/workspace/.config/email/config.json` 是否存在
-2. 如存在 → 执行邮件发送
-3. 如不存在 → 提示："需要先配置 SMTP 邮箱，请创建配置文件 ~/.openclaw/workspace/.config/email/config.json"（附配置模板）
-
-**当前配置状态：** ✅ 已配置
-- 配置文件：`/home/node/.openclaw/workspace/.config/email/config.json`
-- 发件人：`yanlinyyds0v0@163.com`
-- 收件人：`1730933627@qq.com`
 
 ---
 

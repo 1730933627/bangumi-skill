@@ -2461,7 +2461,7 @@ async function exportToPDF(subjectId) {
   const summary = (subject.summary || '暂无简介').replace(/<[^>]+>/g, '');
   const paragraphs = summary.split(/[。！？]/).filter(s => s.trim().length >= 20).slice(0, 4);
   
-  // 生成 PDF 内容（纯文本格式，可用于邮件或其他用途）
+  // 生成 PDF 内容（JSON 格式数据）
   const data = {
     alt_text: subject.name_cn || subject.name || '未知作品',
     rating_score: String(subject.rating?.score || 'N/A'),
