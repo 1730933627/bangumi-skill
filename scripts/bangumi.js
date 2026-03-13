@@ -1647,6 +1647,8 @@ Token 管理:
 
 导出功能:
   pdf <ID>              导出番剧信息为 PDF 数据格式（JSON）
+  generate-pdf <ID>     生成 PDF 文件（需要 Python3）
+  genpdf <ID>           generate-pdf 的简写
 
 示例:
   bangumi search 葬送的芙莉莲
@@ -2108,13 +2110,58 @@ async function main() {
         break;
         
       case 'pdf':
-        // 导出番剧信息为 PDF 数据格式
+        // 导出番剧信息为 PDF 数据格式（JSON）
         if (!param || !/^\d+$/.test(param)) {
           log('[ERROR]', '错误：请提供条目 ID');
           log('[INFO]', '用法：bangumi pdf <条目 ID>');
           process.exit(1);
         }
         await exportToPDF(parseInt(param));
+        break;
+      
+      case 'generate-pdf':
+      case 'genpdf':
+        // 生成 PDF 文件
+        if (!param || !/^\d+$/.test(param)) {
+          log('[ERROR]', '错误：请提供条目 ID');
+          log('[INFO]', '用法：bangumi generate-pdf <条目 ID> [输出文件.pdf]');
+          process.exit(1);
+        }
+        const subjectId = parseInt(param);
+        const outputFile = param2 || `bangumi_${subjectId}.pdf`;
+        
+        log('[INFO]', `正在获取条目 ${subjectId} 的数据...`);
+        const pdfData = await exportToPDF(subjectId);
+        
+        if (pdfData) {
+          log('[INFO]', `正在生成 PDF 文件...`);
+          const generateScript = path.join(__dirname, 'generate_pdf.py');
+          const { spawn } = require('child_process');
+          
+          const python = spawn('python3', [generateScript, String(subjectId), outputFile]);
+          
+          let stdout = '';
+          let stderr = '';
+          
+          python.stdout.on('data', (data) => {
+            stdout += data.toString();
+            process.stdout.write(data);
+          });
+          
+          python.stderr.on('data', (data) => {
+            stderr += data.toString();
+            process.stderr.write(data);
+          });
+          
+          python.on('close', (code) => {
+            if (code === 0) {
+              log('[OK]', `PDF 生成完成：${outputFile}`);
+            } else {
+              log('[ERROR]', `PDF 生成失败，退出码：${code}`);
+            }
+            process.exit(code);
+          });
+        }
         break;
         
       default:

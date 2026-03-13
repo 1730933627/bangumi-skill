@@ -94,13 +94,30 @@ metadata: {"openclaw":{"emoji":"📺"}}
 | `token set <token>` | 设置 Access Token |
 | `token clear` | 清除 Token |
 
-### PDF 导出
+### PDF 功能
 
 | 命令 | 说明 | 参数 |
 |------|------|------|
-| `pdf <ID>` | 导出番剧信息为 PDF 数据格式 | 条目 ID |
+| `pdf <ID>` | 导出番剧信息为 JSON 数据 | 条目 ID |
+| `generate-pdf <ID> [文件]` | 生成 PDF 文件 | 条目 ID、输出文件名（可选） |
+| `genpdf <ID>` | generate-pdf 的简写 | 条目 ID |
 
-> 💡 输出 JSON 格式数据，包含封面图、评分、声优信息、剧情简介、标签、收藏统计等。
+> 💡 `pdf` 命令输出 JSON 格式数据
+> 
+> 💡 `generate-pdf` 生成文本格式的 PDF 文件（需要 Python3）
+
+**示例：**
+```bash
+# 导出 JSON 数据
+bangumi pdf 400602
+
+# 生成 PDF 文件
+bangumi generate-pdf 400602
+bangumi generate-pdf 400602 芙莉莲.pdf
+
+# 使用简写
+bangumi genpdf 400602
+```
 
 ---
 
