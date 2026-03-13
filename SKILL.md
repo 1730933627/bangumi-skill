@@ -1,6 +1,6 @@
 ---
 name: bangumi
-description: Bangumi 动画查询技能。查询动画、漫画、游戏信息，支持搜索、详情、新番表、评分、收藏管理、角色搜索、相似推荐等全功能。
+description: Bangumi 动画查询技能。查询动画、漫画、游戏信息，支持搜索、详情、新番表、评分、收藏管理、角色搜索、相似推荐、邮件发送番剧详情等全功能。
 metadata: {"openclaw":{"emoji":"📺"}}
 ---
 
@@ -24,6 +24,8 @@ metadata: {"openclaw":{"emoji":"📺"}}
 - 查看用户评论/吐槽箱（如"XXX 的吐槽箱"）
 - 查看用户收藏/观看历史（需要 Access Token）
 - 标记观看状态/剧集进度（需要 Access Token）
+- **发送番剧详情邮件**（如"把 XXX 的详情发邮件给我"、"发我邮箱"、"发送到邮箱"）
+- **发送热门番剧邮件**（如"把今年最热门的番发我邮箱"、"推荐一部好番到我的邮箱"）
 
 ## 不触发
 - 非 ACG 相关内容（电影、小说等）
@@ -92,6 +94,18 @@ metadata: {"openclaw":{"emoji":"📺"}}
 | `token status` | 查看 Token 状态 |
 | `token set <token>` | 设置 Access Token |
 | `token clear` | 清除 Token |
+
+### 邮件发送（需要配置 SMTP）
+
+| 命令 | 说明 | 参数 |
+|------|------|------|
+| `mail <ID> [主题]` | 发送番剧详情邮件 | 条目 ID、可选邮件主题 |
+| `email <ID> [主题]` | mail 命令的别名 | 同上 |
+| `mail-hot [数量] [--min 评分] [主题]` | 发送本季热门番剧邮件 | 数量、最低评分、可选主题 |
+
+> 💡 邮件包含：封面图、评分、声优信息、剧情简介、标签、收藏统计等精美排版内容
+> 
+> ⚠️ **配置检查：** 执行邮件命令前，先检查配置文件 `~/.openclaw/workspace/.config/email/config.json` 是否存在。如不存在，提示用户先配置 SMTP。
 
 ---
 
@@ -188,10 +202,73 @@ bangumi token set <your_token>
 
 ---
 
-## 配置
+## 邮件功能配置
 
-- **基础功能：** 无需配置
-- **个人管理功能：** 需要配置 Access Token
+### 创建配置文件
+创建 `~/.openclaw/workspace/.config/email/config.json`：
+
+```json
+{
+  "smtp": {
+    "server": "smtp.163.com",
+    "port": 465,
+    "use_ssl": true
+  },
+  "sender": {
+    "email": "your_email@163.com",
+    "password": "your_auth_code",
+    "name": "智慧之王 Raphael"
+  },
+  "recipient": {
+    "email": "recipient@qq.com",
+    "name": "主人"
+  },
+  "image": {
+    "referer": "https://bangumi.tv/",
+    "user_agent": "Mozilla/5.0",
+    "timeout": 10
+  },
+  "defaults": {
+    "subject_prefix": "📺",
+    "sender_signature": "OpenClaw 智慧之王 💙 Raphael"
+  }
+}
+```
+
+### 获取 SMTP 授权码
+- **163 邮箱：** 登录 163 邮箱 → 设置 → POP3/SMTP/IMAP → 开启 SMTP 服务 → 获取授权码
+- **QQ 邮箱：** 登录 QQ 邮箱 → 设置 → 账户 → 开启 SMTP 服务 → 获取授权码
+- **其他邮箱：** 咨询邮箱服务商获取 SMTP 配置
+
+### 发送邮件
+```bash
+# 发送番剧详情邮件
+bangumi mail 400602
+bangumi mail 400602 "葬送的芙莉莲 - 强烈推荐！"
+
+# 或使用别名
+bangumi email 400602
+```
+
+### 邮件内容
+邮件包含以下精美排版内容：
+- 📺 作品封面图
+- ⭐ Bangumi 评分、排名、评价人数
+- 🎙️ 主要声优信息（4 位）
+- 🏷️ 作品标签
+- 📊 收藏统计（想看/在看/看过人数）
+- 📝 剧情简介
+- 🔗 Bangumi 条目链接
+
+---
+
+## 配置总览
+
+| 功能 | 配置要求 |
+|------|----------|
+| 基础查询 | 无需配置 |
+| 个人管理 | 需要 Bangumi Access Token |
+| 邮件发送 | 需要 SMTP 配置 |
 
 ---
 
@@ -391,6 +468,44 @@ bangumi token set YOUR_ACCESS_TOKEN
 # 清除 Token
 bangumi token clear
 ```
+
+### 邮件发送
+
+```bash
+# 发送番剧详情邮件（使用默认主题）
+bangumi mail 400602
+
+# 自定义邮件主题
+bangumi mail 400602 "葬送的芙莉莲 - 强烈推荐！"
+
+# 使用别名
+bangumi email 548818 "本季最佳：芙莉莲"
+
+# 发送本季热门番剧邮件
+bangumi seasonal 1 --min 8.0  # 获取评分≥8.0 的 TOP1
+bangumi mail <ID>             # 用获取到的 ID 发送邮件
+```
+
+### 自然语言请求处理
+
+当用户发送以下类型的自然语言请求时，AI 应识别并调用邮件功能：
+
+| 用户说法 | AI 处理流程 |
+|---------|------------|
+| "把 XXX 发我邮箱" | 1. 搜索作品获取 ID → 2. 调用 `mail <ID>` |
+| "把今年最热门的番发我邮箱" | 1. 获取本季热门 TOP1 → 2. 调用 `mail <ID>` |
+| "推荐一部好番到我的邮箱" | 1. 获取高评分作品 → 2. 调用 `mail <ID>` |
+| "发我邮箱"（上下文中已有作品） | 直接使用上下文中的作品 ID 调用 `mail <ID>` |
+
+**配置检查流程：**
+1. 检查 `~/.openclaw/workspace/.config/email/config.json` 是否存在
+2. 如存在 → 执行邮件发送
+3. 如不存在 → 提示："需要先配置 SMTP 邮箱，请创建配置文件 ~/.openclaw/workspace/.config/email/config.json"（附配置模板）
+
+**当前配置状态：** ✅ 已配置
+- 配置文件：`/home/node/.openclaw/workspace/.config/email/config.json`
+- 发件人：`yanlinyyds0v0@163.com`
+- 收件人：`1730933627@qq.com`
 
 ---
 
