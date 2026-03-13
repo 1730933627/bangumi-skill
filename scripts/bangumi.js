@@ -2121,14 +2121,29 @@ async function main() {
       
       case 'generate-pdf':
       case 'genpdf':
-        // 生成 PDF 文件
+        // 生成 PDF 文件（支持缩放）
         if (!param || !/^\d+$/.test(param)) {
           log('[ERROR]', '错误：请提供条目 ID');
-          log('[INFO]', '用法：bangumi generate-pdf <条目 ID> [输出文件.pdf]');
+          log('[INFO]', '用法：bangumi generate-pdf <条目 ID> [输出文件.pdf] [--zoom 缩放]');
+          log('[INFO]', '缩放比例：1.0=100%（默认），0.8=80%，1.2=120%');
           process.exit(1);
         }
         const subjectId = parseInt(param);
-        const outputFile = param2 || `bangumi_${subjectId}.txt`;
+        const cacheDir = path.join(__dirname, '..', 'cache');
+        
+        // 解析参数（从 args 数组）
+        let outputFile = path.join(cacheDir, `bangumi_${subjectId}.pdf`);
+        const pythonArgs = [String(subjectId)];
+        
+        for (let i = 2; i < args.length; i++) {
+          const arg = args[i];
+          if (arg === '--zoom' && i + 1 < args.length) {
+            pythonArgs.push('--zoom', args[++i]);
+          } else if (!arg.startsWith('--')) {
+            outputFile = path.join(cacheDir, arg);
+            pythonArgs.push(arg);
+          }
+        }
         
         log('[INFO]', `正在获取条目 ${subjectId} 的数据...`);
         const pdfData = await exportToPDF(subjectId, true);  // quiet mode
@@ -2138,7 +2153,13 @@ async function main() {
           const generateScript = path.join(__dirname, 'generate_pdf.py');
           const { spawn } = require('child_process');
           
-          const python = spawn('python3', [generateScript, String(subjectId), outputFile]);
+          // 确保缓存目录存在
+          const fs = require('fs');
+          if (!fs.existsSync(cacheDir)) {
+            fs.mkdirSync(cacheDir, { recursive: true });
+          }
+          
+          const python = spawn('python3', [generateScript, ...pythonArgs]);
           
           // 通过 stdin 传递 JSON 数据
           python.stdin.write(JSON.stringify(pdfData));
@@ -2507,6 +2528,44 @@ async function exportToPDF(subjectId, quiet = false) {
   const summary = (subject.summary || '暂无简介').replace(/<[^>]+>/g, '');
   const paragraphs = summary.split(/[。！？]/).filter(s => s.trim().length >= 20).slice(0, 4);
   
+  // 获取用户评论（吐槽箱）- 通过网页抓取
+  let comments = [];
+  try {
+    const html = await fetchWebPage(`https://bangumi.tv/subject/${subjectId}/comments`);
+    // 提取评论内容
+    const commentRegex = /<p class="comment">([\s\S]*?)<\/p>/g;
+    const userRegex = /data-item-user="([^"]+)"/g;
+    const rateRegex = /class="stars[^"]*stars([0-9]+)"/g;
+    
+    let commentMatch;
+    let userMatches = [];
+    let rateMatches = [];
+    
+    // 先提取所有用户名和评分
+    while ((match = userRegex.exec(html)) !== null) {
+      userMatches.push(match[1]);
+    }
+    while ((match = rateRegex.exec(html)) !== null) {
+      rateMatches.push(parseInt(match[1]));
+    }
+    
+    // 提取评论内容并匹配用户
+    let idx = 0;
+    while ((commentMatch = commentRegex.exec(html)) !== null && comments.length < 5) {
+      const content = commentMatch[1].trim();
+      if (content) {
+        comments.push({
+          username: userMatches[idx] || '未知用户',
+          rating: rateMatches[idx] || null,
+          content: content
+        });
+        idx++;
+      }
+    }
+  } catch (e) {
+    // 忽略错误
+  }
+  
   // 生成 PDF 内容（JSON 格式数据）
   const data = {
     alt_text: subject.name_cn || subject.name || '未知作品',
@@ -2536,7 +2595,17 @@ async function exportToPDF(subjectId, quiet = false) {
     link_text: '查看 Bangumi 条目 →',
     cover_url: subject.images?.large || subject.images?.common || '',
     signature: 'OpenClaw 智慧之王 💙 Raphael',
-    date: new Date().toISOString().split('T')[0]
+    date: new Date().toISOString().split('T')[0],
+    // 用户评论 HTML
+    quotes_html: comments.length > 0 
+      ? comments.map(c => {
+          const stars = c.rating ? '⭐'.repeat(c.rating) : '';
+          return `<div class="quote-card">
+            <div class="quote-text">"${c.content}"</div>
+            <div class="quote-author">— ${c.username} ${stars}</div>
+          </div>`;
+        }).join('')
+      : '<p style="text-align:center;color:#999;padding:20px;">暂无用户评论</p>'
   };
   
   // 输出 JSON 数据（可被其他脚本用于生成 PDF）

@@ -24,7 +24,9 @@ metadata: {"openclaw":{"emoji":"📺"}}
 - 查看用户评论/吐槽箱（如"XXX 的吐槽箱"）
 - 查看用户收藏/观看历史（需要 Access Token）
 - 标记观看状态/剧集进度（需要 Access Token）
-- **导出番剧信息为 PDF**（如"把 XXX 的信息导出为 PDF"、"生成 XXX 的 PDF"）
+- **导出番剧信息为 PDF**（仅当用户明确说"PDF"时，如"生成 XXX 的 PDF"、"把 XXX 导出为 PDF"）
+
+**注意：** 默认查询返回文本信息，只有用户明确提到"PDF"时才生成 PDF 文件。
 
 ## 不触发
 - 非 ACG 相关内容（电影、小说等）
@@ -94,29 +96,25 @@ metadata: {"openclaw":{"emoji":"📺"}}
 | `token set <token>` | 设置 Access Token |
 | `token clear` | 清除 Token |
 
-### PDF 功能
+### PDF 功能（仅当用户明确要求时）
 
 | 命令 | 说明 | 参数 |
 |------|------|------|
-| `pdf <ID>` | 导出番剧信息为 JSON 数据 | 条目 ID |
 | `generate-pdf <ID> [文件]` | 生成 PDF 文件 | 条目 ID、输出文件名（可选） |
 | `genpdf <ID>` | generate-pdf 的简写 | 条目 ID |
 
-> 💡 `pdf` 命令输出 JSON 格式数据
+> 💡 **默认行为：** 查询返回文本信息
 > 
-> 💡 `generate-pdf` 生成文本格式的 PDF 文件（需要 Python3）
+> 💡 **PDF 生成：** 仅当用户明确说"PDF"时使用
 
 **示例：**
 ```bash
-# 导出 JSON 数据
-bangumi pdf 400602
+# 默认：查询并返回文本信息
+bangumi subject 400602
 
-# 生成 PDF 文件
+# 仅当用户要求 PDF 时
 bangumi generate-pdf 400602
 bangumi generate-pdf 400602 芙莉莲.pdf
-
-# 使用简写
-bangumi genpdf 400602
 ```
 
 ---
