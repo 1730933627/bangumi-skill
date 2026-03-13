@@ -1,6 +1,6 @@
 ---
 name: bangumi
-description: Bangumi 动画查询技能。查询动画、漫画、游戏信息，支持搜索、详情、新番表、评分、收藏管理、角色搜索、相似推荐、邮件发送番剧详情等全功能。
+description: Bangumi 动画查询技能。查询动画、漫画、游戏信息，支持搜索、详情、新番表、评分、收藏管理、角色搜索、相似推荐、PDF 数据导出等全功能。
 metadata: {"openclaw":{"emoji":"📺"}}
 ---
 
@@ -24,8 +24,7 @@ metadata: {"openclaw":{"emoji":"📺"}}
 - 查看用户评论/吐槽箱（如"XXX 的吐槽箱"）
 - 查看用户收藏/观看历史（需要 Access Token）
 - 标记观看状态/剧集进度（需要 Access Token）
-- **发送番剧详情邮件**（如"把 XXX 的详情发邮件给我"、"发我邮箱"、"发送到邮箱"）
-- **发送热门番剧邮件**（如"把今年最热门的番发我邮箱"、"推荐一部好番到我的邮箱"）
+- **导出番剧信息为 PDF**（如"把 XXX 的信息导出为 PDF"、"生成 XXX 的 PDF"）
 
 ## 不触发
 - 非 ACG 相关内容（电影、小说等）
@@ -95,17 +94,13 @@ metadata: {"openclaw":{"emoji":"📺"}}
 | `token set <token>` | 设置 Access Token |
 | `token clear` | 清除 Token |
 
-### 邮件发送（需要配置 SMTP）
+### PDF 导出
 
 | 命令 | 说明 | 参数 |
 |------|------|------|
-| `mail <ID> [主题]` | 发送番剧详情邮件 | 条目 ID、可选邮件主题 |
-| `email <ID> [主题]` | mail 命令的别名 | 同上 |
-| `mail-hot [数量] [--min 评分] [主题]` | 发送本季热门番剧邮件 | 数量、最低评分、可选主题 |
+| `pdf <ID>` | 导出番剧信息为 PDF 数据格式 | 条目 ID |
 
-> 💡 邮件包含：封面图、评分、声优信息、剧情简介、标签、收藏统计等精美排版内容
-> 
-> ⚠️ **配置检查：** 执行邮件命令前，先检查配置文件 `~/.openclaw/workspace/.config/email/config.json` 是否存在。如不存在，提示用户先配置 SMTP。
+> 💡 输出 JSON 格式数据，包含封面图、评分、声优信息、剧情简介、标签、收藏统计等，可用于生成 PDF 或邮件发送。
 
 ---
 
@@ -202,63 +197,33 @@ bangumi token set <your_token>
 
 ---
 
-## 邮件功能配置
+## PDF 导出
 
-### 创建配置文件
-创建 `~/.openclaw/workspace/.config/email/config.json`：
-
-```json
-{
-  "smtp": {
-    "server": "smtp.163.com",
-    "port": 465,
-    "use_ssl": true
-  },
-  "sender": {
-    "email": "your_email@163.com",
-    "password": "your_auth_code",
-    "name": "智慧之王 Raphael"
-  },
-  "recipient": {
-    "email": "recipient@qq.com",
-    "name": "主人"
-  },
-  "image": {
-    "referer": "https://bangumi.tv/",
-    "user_agent": "Mozilla/5.0",
-    "timeout": 10
-  },
-  "defaults": {
-    "subject_prefix": "📺",
-    "sender_signature": "OpenClaw 智慧之王 💙 Raphael"
-  }
-}
-```
-
-### 获取 SMTP 授权码
-- **163 邮箱：** 登录 163 邮箱 → 设置 → POP3/SMTP/IMAP → 开启 SMTP 服务 → 获取授权码
-- **QQ 邮箱：** 登录 QQ 邮箱 → 设置 → 账户 → 开启 SMTP 服务 → 获取授权码
-- **其他邮箱：** 咨询邮箱服务商获取 SMTP 配置
-
-### 发送邮件
+### 使用示例
 ```bash
-# 发送番剧详情邮件
-bangumi mail 400602
-bangumi mail 400602 "葬送的芙莉莲 - 强烈推荐！"
-
-# 或使用别名
-bangumi email 400602
+# 导出番剧信息为 PDF 数据格式
+bangumi pdf 400602
 ```
 
-### 邮件内容
-邮件包含以下精美排版内容：
-- 📺 作品封面图
-- ⭐ Bangumi 评分、排名、评价人数
-- 🎙️ 主要声优信息（4 位）
-- 🏷️ 作品标签
+### 输出数据
+输出 JSON 格式数据，包含：
+- 📺 作品基本信息（标题、评分、排名）
+- 🎙️ 声优信息（4 位主要角色）
 - 📊 收藏统计（想看/在看/看过人数）
+- 🏷️ 作品标签
 - 📝 剧情简介
+- 🖼️ 封面图 URL
 - 🔗 Bangumi 条目链接
+
+### 与邮件技能配合使用
+导出的 JSON 数据可以传递给 email 技能发送邮件：
+```bash
+# 1. 导出番剧数据
+bangumi pdf 400602 > data.json
+
+# 2. 使用 email 技能发送（需要自行处理 JSON 生成 HTML）
+email send-html "番剧推荐" "content.html"
+```
 
 ---
 
@@ -268,7 +233,7 @@ bangumi email 400602
 |------|----------|
 | 基础查询 | 无需配置 |
 | 个人管理 | 需要 Bangumi Access Token |
-| 邮件发送 | 需要 SMTP 配置 |
+| PDF 导出 | 无需配置 |
 
 ---
 

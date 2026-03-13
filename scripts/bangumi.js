@@ -1645,6 +1645,9 @@ Token 管理:
   token set <token>     设置 Access Token
   token clear           清除 Token
 
+导出功能:
+  pdf <ID>              导出番剧信息为 PDF 数据格式（JSON）
+
 示例:
   bangumi search 葬送的芙莉莲
   bangumi subject 400602
@@ -2104,14 +2107,14 @@ async function main() {
         await searchCharacters(searchKeyword, { nsfw: searchNsfw });
         break;
         
-      case 'info':
-        // 导出番剧信息（JSON 格式，用于邮件发送）
+      case 'pdf':
+        // 导出番剧信息为 PDF 数据格式
         if (!param || !/^\d+$/.test(param)) {
           log('[ERROR]', '错误：请提供条目 ID');
-          log('[INFO]', '用法：bangumi info <条目 ID>');
+          log('[INFO]', '用法：bangumi pdf <条目 ID>');
           process.exit(1);
         }
-        await exportAnimeInfo(parseInt(param));
+        await exportToPDF(parseInt(param));
         break;
         
       default:
@@ -2436,12 +2439,12 @@ async function getCharacter(id, opts = {}) {
 }
 
 // ============================================================================
-// 番剧信息导出 - 输出 JSON 格式数据（用于邮件发送）
+// 番剧信息导出 - 生成 PDF 文件
 // ============================================================================
-async function exportAnimeInfo(subjectId) {
+async function exportToPDF(subjectId) {
   const subject = await apiRequest(`/v0/subjects/${subjectId}`);
   if (!subject || !subject.id) {
-    console.error(JSON.stringify({ error: `未找到条目 ${subjectId}`}));
+    log('[ERROR]', `未找到条目 ${subjectId}`);
     process.exit(1);
   }
   
@@ -2458,6 +2461,7 @@ async function exportAnimeInfo(subjectId) {
   const summary = (subject.summary || '暂无简介').replace(/<[^>]+>/g, '');
   const paragraphs = summary.split(/[。！？]/).filter(s => s.trim().length >= 20).slice(0, 4);
   
+  // 生成 PDF 内容（纯文本格式，可用于邮件或其他用途）
   const data = {
     alt_text: subject.name_cn || subject.name || '未知作品',
     rating_score: String(subject.rating?.score || 'N/A'),
@@ -2489,6 +2493,9 @@ async function exportAnimeInfo(subjectId) {
     date: new Date().toISOString().split('T')[0]
   };
   
+  // 输出 JSON 数据（可被其他脚本用于生成 PDF）
   console.log(JSON.stringify(data, null, 2));
+  
+  return data;
 }
 
